@@ -10,6 +10,8 @@
 #include <filesystem>
 #include <chrono>
 #include <array>
+#include <vector>
+
 namespace fs = std::filesystem;
 using clk = std::chrono::system_clock;
 using sec = std::chrono::duration<double>;
@@ -23,11 +25,15 @@ std::uniform_int_distribution<int32_t> dist{0, 254};
  std::fstream random_dev;
 std::unique_ptr<char[]> randomMemory(int32_t buffer_size)
 {
-    std::fstream random_dev;
-    
     std::unique_ptr<char[]> buffer(new char[buffer_size]);
-
     random_dev.read(buffer.get(), buffer_size);
+    return buffer;
+}
+std::vector<char> randomMemoryVec(int32_t buffer_size)
+{
+    std::vector<char> buffer;
+    buffer.resize(buffer_size);
+    random_dev.read(&buffer[0], buffer_size);
     return buffer;
 }
 
@@ -50,6 +56,13 @@ void test_protobuf(std::ofstream &ofs, int32_t buffer_size)
     fileOutput.reset();
 }
 
+struct DoubleVecType {
+    int32_t counter;
+    std::string channel_name;
+    std::vector<char> channel_value;
+    MSGPACK_DEFINE(counter, channel_name, channel_value);
+};
+
 void test_msgpack(std::ofstream &ofs, int32_t buffer_size)
 {
     for (int idx = 0; idx < 1024; idx++)
@@ -62,6 +75,8 @@ void test_msgpack(std::ofstream &ofs, int32_t buffer_size)
         std::unique_ptr<char[]> buffer = randomMemory(buffer_size);
         msgpack::pack(ofs, msgpack::type::raw_ref(buffer.get(), buffer_size));
 
+        // DoubleVecType v = {idx, "channel_name", std::move(randomMemoryVec(buffer_size))};
+        // msgpack::pack(ofs, v);
         std::cout << "Index " << idx << "\t\r" << std::flush;
     }
 }
