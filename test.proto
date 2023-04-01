@@ -1,0 +1,9 @@
+syntax = "proto3";
+
+package test;
+
+message EventData {
+    int32 counter = 1;
+    string channel_name = 2;
+    repeated int32 buffer = 3 [packed=true];
+}
