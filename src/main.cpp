@@ -19,16 +19,15 @@ std::random_device rnd_device;
 std::mt19937 mersenne_engine{rnd_device()}; // Generates random integers
 std::uniform_int_distribution<int32_t> dist{0, 254};
 
+
+ std::fstream random_dev;
 std::unique_ptr<char[]> randomMemory(int32_t buffer_size)
 {
     std::fstream random_dev;
-    random_dev.open("/dev/urandom",
-                    std::ios::in |         // output file stream
-                        std::ios::binary); // set file cursor at the end
+    
     std::unique_ptr<char[]> buffer(new char[buffer_size]);
 
     random_dev.read(buffer.get(), buffer_size);
-    random_dev.close();
     return buffer;
 }
 
@@ -69,7 +68,9 @@ void test_msgpack(std::ofstream &ofs, int32_t buffer_size)
 
 int main()
 {
-
+    random_dev.open("/dev/urandom",
+                    std::ios::in |         // output file stream
+                        std::ios::binary); // set file cursor at the end
     int32_t buffer_size = 1024 * 1024;
     std::ofstream ofs_msgpack;
     ofs_msgpack.open("random.msgpack",
@@ -101,5 +102,6 @@ int main()
     std::cout << "Msgpack file size:" << fs::file_size("random.msgpack") << std::endl;
     std::cout << "Protobuf time " << duration_protobuf.count() << "s" << std::endl;
     std::cout << "Protobuf file size:" << fs::file_size("random.protobuf") << std::endl;
+        random_dev.close();
     return 0;
 }
