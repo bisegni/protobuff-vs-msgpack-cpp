@@ -11,7 +11,7 @@
 #include <chrono>
 #include <array>
 #include <vector>
-
+#include <tuple>
 namespace fs = std::filesystem;
 using clk = std::chrono::system_clock;
 using sec = std::chrono::duration<double>;
@@ -43,13 +43,10 @@ void test_protobuf(std::ofstream &ofs, int32_t buffer_size)
     std::unique_ptr<google::protobuf::io::CodedOutputStream> codedOutput = std::make_unique<google::protobuf::io::CodedOutputStream>(fileOutput.get());
     for (int idx = 0; idx < 1024; idx++)
     {
-        codedOutput->WriteString("counter");
         codedOutput->WriteLittleEndian32(idx);
-        codedOutput->WriteString("channel_name");
         codedOutput->WriteString("string data");
         std::unique_ptr<char[]> buffer = randomMemory(buffer_size);
         codedOutput->WriteRaw(buffer.get(), buffer_size);
-
         std::cout << "Index " << idx << "\t\r" << std::flush;
     }
     codedOutput.reset();
@@ -65,18 +62,12 @@ struct DoubleVecType {
 
 void test_msgpack(std::ofstream &ofs, int32_t buffer_size)
 {
+    std::string cn = "channel_name";
     for (int idx = 0; idx < 1024; idx++)
     {
-        msgpack::pack(ofs, "counter");
-        msgpack::pack(ofs, idx);
-        msgpack::pack(ofs, "channel_name");
-        msgpack::pack(ofs, "string data");
-
         std::unique_ptr<char[]> buffer = randomMemory(buffer_size);
-        msgpack::pack(ofs, msgpack::type::raw_ref(buffer.get(), buffer_size));
-
-        // DoubleVecType v = {idx, "channel_name", std::move(randomMemoryVec(buffer_size))};
-        // msgpack::pack(ofs, v);
+        std::tuple<int, std::string_view, msgpack::type::raw_ref> data(idx, "example", msgpack::type::raw_ref(buffer.get(), buffer_size));
+        msgpack::pack(ofs, data);
         std::cout << "Index " << idx << "\t\r" << std::flush;
     }
 }
