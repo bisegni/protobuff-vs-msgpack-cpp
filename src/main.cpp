@@ -21,8 +21,7 @@ std::random_device rnd_device;
 std::mt19937 mersenne_engine{rnd_device()}; // Generates random integers
 std::uniform_int_distribution<int32_t> dist{0, 254};
 
-
- std::fstream random_dev;
+std::fstream random_dev;
 std::unique_ptr<char[]> randomMemory(int32_t buffer_size)
 {
     std::unique_ptr<char[]> buffer(new char[buffer_size]);
@@ -53,7 +52,8 @@ void test_protobuf(std::ofstream &ofs, int32_t buffer_size)
     fileOutput.reset();
 }
 
-struct DoubleVecType {
+struct DoubleVecType
+{
     int32_t counter;
     std::string channel_name;
     std::vector<char> channel_value;
@@ -74,40 +74,60 @@ void test_msgpack(std::ofstream &ofs, int32_t buffer_size)
 
 int main()
 {
+    // reate array syze
+    int cur_size = 2;
+    int32_t max_buffer_size = 1024 * 1024;
+    std::vector<int> test_array_size;
+    while (cur_size < max_buffer_size)
+    {
+        test_array_size.push_back(cur_size <<= 1);
+    }
+    std::cout << "min size=" << test_array_size.front() << std::endl;
+    std::cout << "max size=" << test_array_size.back() << std::endl;
+    std::ofstream report;
+    report.open("report.csv");
+
     random_dev.open("/dev/urandom",
                     std::ios::in |         // output file stream
                         std::ios::binary); // set file cursor at the end
-    int32_t buffer_size = 1024 * 1024;
-    std::ofstream ofs_msgpack;
-    ofs_msgpack.open("random.msgpack",
-                     std::ios::out |        // output file stream
-                         std::ios::binary); // set file cursor at the end
-    std::cout << "Write msgpack" << std::endl;
-    const auto before_msgpack = clk::now();
-    if (ofs_msgpack)
+    for (int idx = 0 ; idx < test_array_size.size(); idx++)
     {
-        test_msgpack(ofs_msgpack, buffer_size);
-        ofs_msgpack.close();
-    }
-    const sec duration_msgpack = clk::now() - before_msgpack;
+        int32_t buffer_size = test_array_size[idx];
+        std::cout << "test with size:" << buffer_size << std::endl;
+        std::ofstream ofs_msgpack;
+        ofs_msgpack.open("random.msgpack",
+                         std::ios::out |        // output file stream
+                             std::ios::binary); // set file cursor at the end
+        std::cout << "Write msgpack" << std::endl;
+        const auto before_msgpack = clk::now();
+        if (ofs_msgpack)
+        {
+            test_msgpack(ofs_msgpack, buffer_size);
+            ofs_msgpack.close();
+        }
+        const sec duration_msgpack = clk::now() - before_msgpack;
 
-    std::ofstream ofs_protobuf; // output file stream
-    ofs_protobuf.open("random.protobuf",
-                      std::ios::out |        // output file stream
-                          std::ios::binary); // set file cursor at the end
-    std::cout << "Write protobuf" << std::endl;
-    const auto before_protobuf = clk::now();
-    if (ofs_protobuf)
-    {
-        test_protobuf(ofs_protobuf, buffer_size);
-        ofs_protobuf.close();
+        std::ofstream ofs_protobuf; // output file stream
+        ofs_protobuf.open("random.protobuf",
+                          std::ios::out |        // output file stream
+                              std::ios::binary); // set file cursor at the end
+        std::cout << "Write protobuf" << std::endl;
+        const auto before_protobuf = clk::now();
+        if (ofs_protobuf)
+        {
+            test_protobuf(ofs_protobuf, buffer_size);
+            ofs_protobuf.close();
+        }
+        const sec duration_protobuf = clk::now() - before_protobuf;
+        std::cout << "Generate " << buffer_size << " bytes each iteration" << std::endl;
+        std::cout << "Msgpack time " << duration_msgpack.count() << "s" << std::endl;
+        std::cout << "Msgpack file size:" << fs::file_size("random.msgpack") << std::endl;
+        std::cout << "Protobuf time " << duration_protobuf.count() << "s" << std::endl;
+        std::cout << "Protobuf file size:" << fs::file_size("random.protobuf") << std::endl;
+
+        report << buffer_size << "," << duration_msgpack.count() << "," << fs::file_size("random.msgpack") << "," << duration_protobuf.count() << std::endl;
     }
-    const sec duration_protobuf = clk::now() - before_protobuf;
-    std::cout << "Generate " << buffer_size << " bytes each iteration" << std::endl;
-    std::cout << "Msgpack time " << duration_msgpack.count() << "s" << std::endl;
-    std::cout << "Msgpack file size:" << fs::file_size("random.msgpack") << std::endl;
-    std::cout << "Protobuf time " << duration_protobuf.count() << "s" << std::endl;
-    std::cout << "Protobuf file size:" << fs::file_size("random.protobuf") << std::endl;
-        random_dev.close();
+    random_dev.close();
+    report.close();
     return 0;
 }
