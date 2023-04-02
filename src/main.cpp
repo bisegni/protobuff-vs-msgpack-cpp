@@ -15,6 +15,7 @@
 namespace fs = std::filesystem;
 using clk = std::chrono::system_clock;
 using sec = std::chrono::duration<double>;
+using ms = std::chrono::milliseconds;
 // First create an instance of an engine.
 std::random_device rnd_device;
 // Specify the engine and distribution.
@@ -90,7 +91,7 @@ int main()
     random_dev.open("/dev/urandom",
                     std::ios::in |         // output file stream
                         std::ios::binary); // set file cursor at the end
-    for (int idx = 0 ; idx < test_array_size.size(); idx++)
+    for (int idx = 0; idx < test_array_size.size(); idx++)
     {
         int32_t buffer_size = test_array_size[idx];
         std::cout << "test with size:" << buffer_size << std::endl;
@@ -105,7 +106,7 @@ int main()
             test_msgpack(ofs_msgpack, buffer_size);
             ofs_msgpack.close();
         }
-        const sec duration_msgpack = clk::now() - before_msgpack;
+        const ms duration_msgpack_ms = std::chrono::duration_cast<ms>(clk::now() - before_msgpack);
 
         std::ofstream ofs_protobuf; // output file stream
         ofs_protobuf.open("random.protobuf",
@@ -118,14 +119,14 @@ int main()
             test_protobuf(ofs_protobuf, buffer_size);
             ofs_protobuf.close();
         }
-        const sec duration_protobuf = clk::now() - before_protobuf;
+        const ms duration_protobuf_ms = std::chrono::duration_cast<ms>(clk::now() - before_protobuf);
         std::cout << "Generate " << buffer_size << " bytes each iteration" << std::endl;
-        std::cout << "Msgpack time " << duration_msgpack.count() << "s" << std::endl;
+        std::cout << "Msgpack time " << duration_msgpack_ms.count() << " ms" << std::endl;
         std::cout << "Msgpack file size:" << fs::file_size("random.msgpack") << std::endl;
-        std::cout << "Protobuf time " << duration_protobuf.count() << "s" << std::endl;
+        std::cout << "Protobuf time " << duration_protobuf_ms.count() << " ms" << std::endl;
         std::cout << "Protobuf file size:" << fs::file_size("random.protobuf") << std::endl;
 
-        report << buffer_size << "," << duration_msgpack.count() << "," << fs::file_size("random.msgpack") << "," << duration_protobuf.count() << std::endl;
+        report << buffer_size << "," << duration_msgpack_ms.count() << "," << fs::file_size("random.msgpack") << "," << duration_protobuf_ms.count() << "," << fs::file_size("random.protobuf") << std::endl;
     }
     random_dev.close();
     report.close();
